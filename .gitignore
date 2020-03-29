@@ -1,0 +1,8 @@
+test_images/*
+winners/*
+.ipynb_checkpoints
+*.swp
+.vscode
+__pycache__
+venv/
+
