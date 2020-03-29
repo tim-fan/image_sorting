@@ -5,4 +5,5 @@ winners/*
 .vscode
 __pycache__
 venv/
+comparison_results.txt
 
