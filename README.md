@@ -29,7 +29,7 @@ In this scheme, each image comparison represents a 'match' between the two prese
 
 
 ## Next Steps
-Some avenues to think about:
+Some avenues to think about, going beyond the single-elimination approach:
 * Which images should be presented to the user for comparison?  
    We don't want to want to waste time comparing images that won't make it into the top partition, really we want to focus on comparisons which are likely to move an image over the partition boundary.  
    At the same time, we don't want to focus all of our comparisons on a small subset of the images (want a fair distribution of comparisons over all images)
