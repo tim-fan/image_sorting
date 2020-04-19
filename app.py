@@ -16,7 +16,6 @@ from competition_management import start_competition, get_next_match, process_re
 
 random.seed(123)
 
-# image_directory = '/home/tim/Downloads/Baby_Ralf/'
 image_directory = '/home/tim/projects/20200311_image_sorting/test_images_small_set/'
 list_of_images = [os.path.basename(x) for x in glob.glob('{}*.jpg'.format(image_directory))]
 static_image_route = '/static/'
