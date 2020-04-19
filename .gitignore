@@ -6,4 +6,4 @@ winners/*
 __pycache__
 venv/
 comparison_results.txt
-
+*.sqlite
