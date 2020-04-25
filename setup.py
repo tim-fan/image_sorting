@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name='image_sorting',  
     version='0.1',
-    scripts=['pic_pick.py'] ,
+    scripts=['bin/pic_pick'] ,
     author="Tim Fanselow",
     author_email="",
     description="Tool for sorting images",

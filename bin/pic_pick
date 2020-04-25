@@ -23,7 +23,7 @@ import random
 import pandas as pd
 from docopt import docopt
 
-from competition_management import start_competition, get_next_match, process_result
+from image_sorting.competition_management import start_competition, get_next_match, process_result
 
 arguments = docopt(__doc__)
 image_directory = arguments['IMAGE_DIR']
