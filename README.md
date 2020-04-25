@@ -4,12 +4,14 @@ Project to quickly partiton the best, say, 20 images, from a larger album.
 
 Created because I have albums of hundreds of images, and would like an easy way to pull out a few of the best ones.
 
-The project is mainly built on the idea of using a series of manual pairwise image comparisons to determine overall which photos are the best. The thinking is that a single pairwise image comparison is mentally simple, compared to attempting to sort out a whole album at once. Hence with this approach the album is sorted through a series of mentally simple operations, rather than a single mentally taxing one. 
+The project is mainly built on the idea of using a series of manual pairwise image comparisons to determine overall which photos are the best. The thinking is that a single pairwise image comparison is mentally simple, compared to attempting to sort out a whole album at once. Hence with this approach the album is sorted through a series of mentally simple operations, rather than a single mentally taxing one.
+
+This approach is implemented in this repo as a [plotly dash app](pic_pick.py).
 
 Image comparisons are performed by presenting both images to the user, and prompting them to select the best one.
 
-__Screenshot of image comparison notebook in action:__
-![image comparison](media/image_comparison_notebook_screenshot.png)
+__Screenshot of image comparison app in action:__
+![image comparison](media/pic_pick_screenshot.png)
 
 # First Go: Single Elimination Tournament
 
@@ -22,10 +24,7 @@ In this scheme, each image comparison represents a 'match' between the two prese
 
 ### Run it live:
 1) clone this repo
-2) copy the images you want to compare into directory 'test_images'
-3) open/run the notebook 'single_elimination_notebook.ipynb' from the repo base directory
-4) perform the pairwise image comparisons as prompted
-5) on completion, the best 20 images will be copied into the 'winners' directory
+2) ./pic_pick.py -h
 
 
 ## Next Steps

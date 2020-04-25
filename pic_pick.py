@@ -1,24 +1,43 @@
+#!/usr/bin/env python 
+'''Pic Pick
+Usage: pic_pick.py IMAGE_DIR [--port=PORT] [--set-seed] [--reset-comp]
+
+Run dash app to help pick the best photo from the given directory IMAGE_DIR.
+
+Options:
+-p PORT, --port=PORT   the port to use for the server [default: 8080]
+--set-seed             fix random seed for repeatable image shuffling
+--reset-comp           start the competition from scratch (don't reload from db)
+'''
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Output, Input, State
 from dash.exceptions import PreventUpdate
-
 import flask
 import glob
 import os
 import sqlitedict
 import random
 import pandas as pd
+from docopt import docopt
 
 from competition_management import start_competition, get_next_match, process_result
 
-random.seed(123)
+arguments = docopt(__doc__)
+image_directory = arguments['IMAGE_DIR']
+port = arguments['--port']
+reset_comp = arguments['--reset-comp']
+if arguments['--set-seed']:
+    random.seed(123)
 
-image_directory = '/home/tim/projects/20200311_image_sorting/test_images_small_set/'
+#todo: better way of serving all image types
 list_of_images = [os.path.basename(x) for x in glob.glob('{}*.jpg'.format(image_directory))]
+list_of_images.extend( os.path.basename(x) for x in glob.glob('{}*.png'.format(image_directory)))
+assert len(list_of_images) > 0, "No images found in directory {}".format(image_directory)
 static_image_route = '/static/'
+
 db = sqlitedict.SqliteDict('./db.sqlite', autocommit=True)
 
 TOP_N = 20 #how many of the best images to show in the top tab
@@ -33,7 +52,7 @@ def start_new_competition():
 def image_name(path):
     return None if path is None else path[len(static_image_route):]
 
-if 'competitors' not in db.keys():
+if 'competitors' not in db.keys() or reset_comp:
     print("Start new competition")
     start_new_competition()
 else:
@@ -61,22 +80,25 @@ app.layout = dbc.Container([
     dcc.Tabs([
         dcc.Tab(label='Comparisons', children=[
             dbc.Row(
-                dbc.Col(html.P(id='competition_state', children="Competition Starting"))
+                dbc.Col([
+                    html.P(id='competition_state', children="Competition Starting"),
+                    html.P("Click the image you prefer:")
+                ])
+                
             ),
             dbc.Row(
                 dbc.Col([
                     html.Img(id='image_a',style={'width':'50%'}),
                     html.Img(id='image_b',style={'width':'50%'})
                 ]),
-                # style={"height": "500px", "background-color": "cyan"}        
             ),
         ]),
         dcc.Tab(label='Best Ones', children=[
             dbc.Row(
-                dbc.Col([
-                    html.Img(id='best_image_{i}'.format(i=i), style={'width':'100%'}) for i in range(TOP_N)
-                ]),
-                # style={"height": "500px", "background-color": "cyan"}        
+                dbc.Col(
+                    [html.P("Your favourites:")] + 
+                    [html.Img(id='best_image_{i}'.format(i=i), style={'width':'100%'}) for i in range(TOP_N)]
+                ),
             ),
         ]),
     ]),
@@ -144,11 +166,15 @@ def image_clicked(image_a_clicks, image_b_clicks, click_state, image_a_src, imag
         # raise PreventUpdate
         winner = None
         loser = None
+    print(pd.Timestamp.now())
+    print("winner: {}".format(winner))
+    print("loser:  {}".format(loser))
+
+    competitors = db['competitors']
+    losers = db['losers']
 
     #process result and determine next images
     if (winner is not None) and (loser is not None):
-        competitors = db['competitors']
-        losers = db['losers']
         competitors, losers = process_result(winner, loser, competitors, losers)
         db['competitors'] = competitors
         db['losers'] = losers
@@ -175,19 +201,26 @@ def image_clicked(image_a_clicks, image_b_clicks, click_state, image_a_src, imag
         next_images = [
             static_image_route + name for name in next_image_names
         ]
-        competition_state = 'competition running'
+        competition_state = 'Competition running. Remaining comparisons: {}'.format(len(competitors.index))
     
-    return [click_state] + next_images + best_images + [competition_state]
+    outputs = [click_state] + next_images + best_images + [competition_state]
+    return  outputs
 
 # Add a static image route that serves images from desktop
 # Be *very* careful here - you don't want to serve arbitrary files
 # from your computer or server
 @app.server.route('{}<image_path>.jpg'.format(static_image_route))
-def serve_image(image_path):
+def serve_jpg(image_path):
     image_name = '{}.jpg'.format(image_path)
+    if image_name not in list_of_images:
+        raise Exception('"{}" is excluded from the allowed static files'.format(image_path))
+    return flask.send_from_directory(image_directory, image_name)
+@app.server.route('{}<image_path>.png'.format(static_image_route))
+def serve_png(image_path):
+    image_name = '{}.png'.format(image_path)
     if image_name not in list_of_images:
         raise Exception('"{}" is excluded from the allowed static files'.format(image_path))
     return flask.send_from_directory(image_directory, image_name)
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=True,host="0.0.0.0", port=port)
