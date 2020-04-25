@@ -22,9 +22,25 @@ __Example single elimination tournament (source wikipedia)__
 
 In this scheme, each image comparison represents a 'match' between the two presented images, and matches continue until all but the top n competitors (images) have been eliminated. 
 
-### Run it live:
-1) clone this repo
-2) ./pic_pick.py -h
+## Install
+```
+pip install git+https://github.com/tim-fan/image_sorting.git
+```
+
+## Usage
+```
+$ pic_pick -h
+
+Pic Pick
+Usage: pic_pick IMAGE_DIR [--port=PORT] [--set-seed] [--reset-comp]
+
+Run dash app to help pick the best photo from those in the given directory IMAGE_DIR.
+
+Options:
+-p PORT, --port=PORT   the port to use for the server [default: 8080]
+--set-seed             fix random seed for repeatable image shuffling
+--reset-comp           start the competition from scratch (don't reload from db)
+```
 
 
 ## Next Steps

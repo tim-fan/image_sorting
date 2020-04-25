@@ -1,8 +1,8 @@
 #!/usr/bin/env python 
 '''Pic Pick
-Usage: pic_pick.py IMAGE_DIR [--port=PORT] [--set-seed] [--reset-comp]
+Usage: pic_pick IMAGE_DIR [--port=PORT] [--set-seed] [--reset-comp]
 
-Run dash app to help pick the best photo from the given directory IMAGE_DIR.
+Run dash app to help pick the best photo from those in the given directory IMAGE_DIR.
 
 Options:
 -p PORT, --port=PORT   the port to use for the server [default: 8080]
