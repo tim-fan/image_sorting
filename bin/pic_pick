@@ -18,15 +18,14 @@ from dash.exceptions import PreventUpdate
 import flask
 import glob
 import os
-import sqlitedict
 import random
 import pandas as pd
 from docopt import docopt
 
-from image_sorting.competition_management import start_competition, get_next_match, process_result
+from image_sorting.competition_management import CompetitionManager
 
 arguments = docopt(__doc__)
-image_directory = arguments['IMAGE_DIR']
+image_directory = os.path.abspath(arguments['IMAGE_DIR']) + '/'
 port = arguments['--port']
 reset_comp = arguments['--reset-comp']
 if arguments['--set-seed']:
@@ -38,41 +37,23 @@ list_of_images.extend( os.path.basename(x) for x in glob.glob('{}*.png'.format(i
 assert len(list_of_images) > 0, "No images found in directory {}".format(image_directory)
 static_image_route = '/static/'
 
-db = sqlitedict.SqliteDict('./db.sqlite', autocommit=True)
+competition_manager = CompetitionManager()
 
 TOP_N = 20 #how many of the best images to show in the top tab
 n_images = len(list_of_images)
 TOP_N = min(TOP_N, n_images)
 
-def start_new_competition():
-    competitors, losers = start_competition(list_of_images)
-    db['competitors'] = competitors
-    db['losers'] = losers
 
 def image_name(path):
     return None if path is None else path[len(static_image_route):]
 
-if 'competitors' not in db.keys() or reset_comp:
+
+if reset_comp or not competition_manager.competition_in_progress():
     print("Start new competition")
-    start_new_competition()
+    competition_manager.start_competition(list_of_images)
 else:
-    print("continue competition from db")
+    print("continuing existing competition")
 
-if 'match_records' not in db.keys():
-    db['match_records'] = pd.DataFrame(columns= ['winner', 'loser', 'timestamp'])
-
-def top_n(n):
-    """
-    Get the current top n images
-    """
-    competitors = db['competitors']
-    losers = db['losers']
-    return pd.concat([
-        competitors, losers]
-    ).sort_values(
-        by='level',
-        ascending=False
-    ).iloc[0:n].name.values
 
 app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 
@@ -129,7 +110,7 @@ def image_clicked(image_a_clicks, image_b_clicks, click_state, image_a_src, imag
     """
     Determine which image was clicked based on stored counts of clicks.
     Based on that, determine which image 'won' the competition.
-    Based on that, update the competition database and choose
+    Based on that, update the competition manager and choose
     the next two images to compare.
     """
 
@@ -170,28 +151,15 @@ def image_clicked(image_a_clicks, image_b_clicks, click_state, image_a_src, imag
     print("winner: {}".format(winner))
     print("loser:  {}".format(loser))
 
-    competitors = db['competitors']
-    losers = db['losers']
-
     #process result and determine next images
     if (winner is not None) and (loser is not None):
-        competitors, losers = process_result(winner, loser, competitors, losers)
-        db['competitors'] = competitors
-        db['losers'] = losers
-
-        #update record of all results
-        match_records = db['match_records']
-        record = pd.DataFrame([[winner, loser, pd.Timestamp.now()]], columns=['winner', 'loser', 'timestamp'])
-        match_records.append(record)
-        db['match_records'] = match_records
-    
-
+        competition_manager.process_result(winner, loser)
 
     best_images = [
-        static_image_route + name for name in top_n(TOP_N)
+        static_image_route + name for name in competition_manager.get_top_n(TOP_N)
     ]
 
-    next_image_names = get_next_match(db['competitors'])
+    next_image_names = competition_manager.get_next_match()
 
     if next_image_names is None:
         #No more matches in competiton
@@ -201,7 +169,7 @@ def image_clicked(image_a_clicks, image_b_clicks, click_state, image_a_src, imag
         next_images = [
             static_image_route + name for name in next_image_names
         ]
-        competition_state = 'Competition running. Remaining comparisons: {}'.format(len(competitors.index))
+        competition_state = 'Competition running. Remaining comparisons: {}'.format(competition_manager.get_n_remaining_matches())
     
     outputs = [click_state] + next_images + best_images + [competition_state]
     return  outputs
