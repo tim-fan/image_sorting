@@ -39,4 +39,30 @@ def test_simple_competition():
         assert 'b' in rankings[2:4]
         assert 'c' in rankings[2:4]
 
+        assert manager.get_next_match() is None
+
         del(manager) #required for tempdir to delete cleanly
+
+def test_multi_user_comp():
+    """
+    Test multi-user use-case
+    """
+    with tempfile.TemporaryDirectory() as tempdir:
+
+        manager = CompetitionManager(dbfile='{}/test_db.sqlite'.format(tempdir))
+        manager.start_competition(
+            competitor_names=['a', 'b', 'c', 'd'],
+            randomise=False
+        )
+        #repeated call to 'get_next_match' should 
+        #return different matches, 
+        assert set(manager.get_next_match()) == {'a', 'b'}
+        assert set(manager.get_next_match()) == {'c', 'd'}
+        
+        # once all competitors are in active matches,
+        # manager can start returning active competitors
+        assert set(manager.get_next_match()) == {'a', 'b'}
+
+        
+        del(manager) #required for tempdir to delete cleanly
+

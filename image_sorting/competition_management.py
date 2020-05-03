@@ -17,10 +17,9 @@ class CompetitionManager:
 
     def __del__(self):
         self.db.close()
-        
+
     def competition_in_progress(self):
         return 'competitors' in self.db.keys()
-
 
     def start_competition(self, competitor_names, randomise=True):
         """
@@ -31,6 +30,7 @@ class CompetitionManager:
         
         competitors = pd.DataFrame(competitor_names, columns=['name'])
         competitors['level'] = 0
+        competitors['active'] = False
         n_competitors = len(competitors.index)
         assert n_competitors > 1, "Error: competition initialised with less than two competitors"
 
@@ -46,18 +46,38 @@ class CompetitionManager:
         """
         Determine which competitors compete next
         """
+        print("get next match")
+        print( self.db['competitors'])
         # trial - find the highest level with at least two competitors
         assert self.competition_in_progress(), "Error - no competition running. Call 'start_competition'"
         competitors = self.db['competitors']
 
-        n_competitors_by_level = competitors.level.value_counts()
-        next_competition_level = n_competitors_by_level[n_competitors_by_level >= 2].index.max()
+        def get_next(competitors):
+            n_competitors_by_level = competitors.level.value_counts()
+            next_competition_level = n_competitors_by_level[n_competitors_by_level >= 2].index.max()
+            
+            next_match_candidates = competitors[competitors.level == next_competition_level]
+            if len(next_match_candidates.index) < 2:
+                return None #can't make a match
+            else: 
+                return next_match_candidates.iloc[0:2,].name.values
         
-        next_match_candidates = competitors[competitors.level == next_competition_level]
-        if len(next_match_candidates.index) < 2:
-            return None #can't make a match
-        else: 
-            return next_match_candidates.iloc[0:2,].name.values
+        #try get next match based on competitors which aren't already
+        #active in matches.
+        #if that fails, get next match based on all competitors
+        inactive_competitors = competitors.loc[~competitors.active,]
+        next_match_candidates = get_next(inactive_competitors)
+        if next_match_candidates is None:
+            next_match_candidates = get_next(competitors)
+
+        if next_match_candidates is not None:
+            competitors.loc[competitors.name.isin(next_match_candidates),'active'] = True
+            self.db['competitors'] = competitors
+        
+        print("next_match_candidates")
+        print(next_match_candidates)
+        return next_match_candidates
+
 
     def process_result(self, winner, loser):
         """
@@ -69,12 +89,15 @@ class CompetitionManager:
         competitors = self.db['competitors']
         losers = self.db['losers']
 
-        assert winner in competitors.name.values, "Given winner is not in list of competitors"
-        assert loser in competitors.name.values, "Given loser is not in list of competitors"
+        if not winner in competitors.name.values:
+            print("Warn: Given winner is not in list of competitors")
+        if not loser in competitors.name.values:
+            print("Warn: Given loser is not in list of competitors")
         
         #winner levels up
         competitors.loc[competitors.name == winner,'level'] += 1
-        
+        competitors.loc[competitors.name == winner,'active'] = False
+
         #loser is removed from competitor table and added to losers table
         losers = losers.append(competitors.loc[competitors.name == loser,])
         competitors = competitors.drop(
