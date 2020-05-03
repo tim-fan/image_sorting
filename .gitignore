@@ -2,6 +2,7 @@ test_images/*
 winners/*
 .ipynb_checkpoints
 *.swp
+*.pyc
 .vscode
 __pycache__
 venv/

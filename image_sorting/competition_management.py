@@ -14,7 +14,10 @@ class CompetitionManager:
     """
     def __init__(self, dbfile='./db.sqlite'):
         self.db = sqlitedict.SqliteDict(dbfile, autocommit=True)
-    
+
+    def __del__(self):
+        self.db.close()
+        
     def competition_in_progress(self):
         return 'competitors' in self.db.keys()
 
@@ -54,7 +57,7 @@ class CompetitionManager:
         if len(next_match_candidates.index) < 2:
             return None #can't make a match
         else: 
-            return next_match_candidates.iloc[0:2,].name
+            return next_match_candidates.iloc[0:2,].name.values
 
     def process_result(self, winner, loser):
         """
@@ -102,4 +105,4 @@ class CompetitionManager:
         ).iloc[0:n].name.values
     
     def get_n_remaining_matches(self):
-        return len(self.db['competitors'].index)
+        return len(self.db['competitors'].index) -1
